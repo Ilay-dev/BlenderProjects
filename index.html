@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blender Projects | Ilay Schönknecht</title>
+    
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Lenis Smooth Scroll CSS (verhindert Ruckeln) -->
+    <style>
+        html.lenis, html.lenis body { height: auto; }
+        .lenis.lenis-smooth { scroll-behavior: auto !important; }
+        .lenis.lenis-smooth[data-lenis-prevent] { overscroll-behavior: contain; }
+        .lenis.lenis-stopped { overflow: hidden; }
+        .lenis.lenis-scrolling iframe { pointer-events: none; }
+    </style>
+
+    <style>
+        /* --- FONTS --- */
+        @font-face {
+            font-family: 'Deltha';
+            src: url('Deltha.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* --- GRUNDLAGEN & RESET --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Deltha', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Hintergrund-Glow */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* --- TYPOGRAFIE --- */
+        header {
+            text-align: center;
+            padding: 120px 20px 80px 20px;
+        }
+
+        h1 {
+            font-size: clamp(3rem, 6vw, 5rem);
+            font-weight: normal;
+            letter-spacing: 0.02em;
+            margin-bottom: 5px;
+            background: linear-gradient(180deg, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            color: #666666;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* --- LAYOUT & GRID --- */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px 100px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 100px;
+        }
+
+        section h2 {
+            font-size: 1.5rem;
+            color: #888;
+            margin-bottom: 30px;
+            font-weight: normal;
+            border-bottom: 1px solid #1a1a1a;
+            padding-bottom: 15px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 40px 24px;
+        }
+
+        .grid-16-9 { grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); }
+        .grid-9-16 { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+
+        /* --- ITEM WRAPPER (Bild + Text) --- */
+        .item-wrapper {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .item-wrapper.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- KARTEN DESIGN --- */
+        .card {
+            background-color: #050505;
+            border: 1px solid #1a1a1a;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: border-color 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .ratio-16-9 { aspect-ratio: 16 / 9; }
+        .ratio-9-16 { aspect-ratio: 9 / 16; }
+
+        .card:hover {
+            border-color: #444;
+            transform: translateY(-5px);
+        }
+
+        .placeholder-content {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            background: repeating-linear-gradient(45deg, #020202, #020202 10px, #080808 10px, #080808 20px);
+            z-index: 1;
+        }
+
+        .card img, .card video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 2;
+            display: none;
+        }
+
+        /* --- BILDUNTERSCHRIFT --- */
+        .caption {
+            font-family: 'Inter', sans-serif;
+            color: #777;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 4px;
+        }
+
+        /* --- LIGHTBOX (POPUP) --- */
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .lightbox.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .lightbox-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            transform: scale(0.95);
+            transition: transform 0.4s ease;
+        }
+
+        .lightbox.active .lightbox-content {
+            transform: scale(1);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: background 0.2s;
+        }
+
+        .lightbox-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            .grid-16-9 { grid-template-columns: 1fr; }
+            .grid-9-16 { grid-template-columns: repeat(2, 1fr); }
+            header { padding: 80px 20px 40px 20px; }
+            .lightbox-close { top: 20px; right: 20px; }
+        }
+        @media (max-width: 480px) {
+            .grid-9-16 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Blender Projects</h1>
+        <p class="subtitle">by Ilay Schönknecht</p>
+    </header>
+
+    <main>
+        <!-- 16:9 Img (6 Slots) -->
+        <section>
+            <h2>Landscape (16:9)</h2>
+            <div class="grid grid-16-9">
+                
+                <div class="item-wrapper">
+                    <div class="card ratio-16-9" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/LaserTunnel_16x9.png" alt="Laser Tunnel 16x9">
+                    </div>
+                    <p class="caption">Laser Tunnel</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-16-9" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/s1000rr_Render.jpg" alt="s1000rr Render">
+                    </div>
+                    <p class="caption">BMW s1000rr Render</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-16-9" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/Mountain_Scene.png" alt="Mountain Scene">
+                    </div>
+                    <p class="caption">Mountain Scene</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-16-9" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/particle_cube_dark.png" alt="Particle Cube">
+                    </div>
+                    <p class="caption">Particle Cube</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-16-9" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/Sword1.png" alt="Sword 1">
+                    </div>
+                    <p class="caption">Sword Concept 1</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-16-9" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/P1_1.png" alt="McLarren P1">
+                    </div>
+                    <p class="caption">McLarren P1 Graphic</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 9:16 Img (5 Slots) -->
+        <section>
+            <h2>Portrait (9:16)</h2>
+            <div class="grid grid-9-16">
+                
+                <div class="item-wrapper">
+                    <div class="card ratio-9-16" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/LaserTunnel_9x16.png" alt="Laser Tunnel 9x16">
+                    </div>
+                    <p class="caption">Laser Tunnel (9:16)</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-9-16" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/phone_cube_sky_2.png" alt="Phone Cube Sky">
+                    </div>
+                    <p class="caption">Particle Cube Sky 2</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-9-16" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/SkyScraper3.png" alt="SkyScraper">
+                    </div>
+                    <p class="caption">SkyScraper</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-9-16" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/Guy_Lights.png" alt="Guy with Lights">
+                    </div>
+                    <p class="caption">Guy with Lights</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-9-16" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <img src="./img/Guy_orb.png" alt="Guy with a Orb">
+                    </div>
+                    <p class="caption">Guy with a Orb</p>
+                </div>
+
+            </div>
+        </section>
+
+        <section>
+            <h2>Animations / Video (9:16)</h2>
+            <div class="grid grid-9-16">
+                
+                <div class="item-wrapper">
+                    <div class="card ratio-9-16" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <video src="./img/Car_track20001-0560.mp4" loop muted playsinline></video>
+                    </div>
+                    <p class="caption">Car Track Animation</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-9-16" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <video src="./img/Final_Rotate_Laser.mp4" loop muted playsinline></video>
+                    </div>
+                    <p class="caption">Rotating Laser Animation</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-9-16" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <video src="./img/Hawkins_Lab_Final_Audio.mp4" loop muted playsinline></video>
+                    </div>
+                    <p class="caption">Hawkins Lab Final</p>
+                </div>
+
+                <div class="item-wrapper">
+                    <div class="card ratio-9-16" onclick="openLightbox(this)">
+                        <div class="placeholder-content">Loading...</div>
+                        <video src="./img/Vines_Edit_Final.mp4" loop muted playsinline></video>
+                    </div>
+                    <p class="caption">Vines Animation Final</p>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- LIGHTBOX HTML -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+        <div class="lightbox-close" onclick="closeLightbox(event, true)">Close</div>
+        <img src="" id="lb-img" class="lightbox-content" style="display: none;">
+        
+        <video src="" id="lb-vid" class="lightbox-content" autoplay loop controls playsinline style="display: none;"></video>
+    </div>
+
+    <!-- Smooth Scroll Library (Lenis) for Momentum Scroll -->
+    <script src="https://unpkg.com/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+
+    <script>
+        // --- 1. SMOOTH SCROLL INIT (LENIS) ---
+        const lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), 
+            smooth: true,
+            mouseMultiplier: 1,
+        });
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+
+
+        document.querySelectorAll('.card').forEach(card => {
+            const img = card.querySelector('img');
+            const video = card.querySelector('video');
+            const placeholder = card.querySelector('.placeholder-content');
+            
+            if(img && img.getAttribute('src') !== "") {
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+            }
+            if(video && video.getAttribute('src') !== "") {
+                video.style.display = 'block';
+                placeholder.style.display = 'none';
+            }
+        });
+
+        document.querySelectorAll('.grid video').forEach(video => {
+            const card = video.closest('.card');
+            
+    
+            card.addEventListener('mouseenter', () => {
+                video.play().catch(err => console.log("Hover play blocked:", err));
+            });
+            
+            
+            card.addEventListener('mouseleave', () => {
+                video.pause();
+
+            });
+        });
+
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+
+        document.querySelectorAll('.item-wrapper').forEach(item => {
+            observer.observe(item);
+        });
+
+
+        const lightbox = document.getElementById('lightbox');
+        const lbImg = document.getElementById('lb-img');
+        const lbVid = document.getElementById('lb-vid');
+
+        function openLightbox(element) {
+            const img = element.querySelector('img');
+            const video = element.querySelector('video');
+
+            if (img && img.getAttribute('src') !== "") {
+                lbImg.src = img.src;
+                lbImg.style.display = 'block';
+                lbVid.style.display = 'none';
+                lbVid.pause();
+                lightbox.classList.add('active');
+                lenis.stop(); 
+            } 
+            else if (video && video.getAttribute('src') !== "") {
+                lbVid.src = video.src;
+                lbVid.style.display = 'block';
+                lbImg.style.display = 'none';
+                
+                lbVid.volume = 1.0; 
+                
+                lbVid.play().catch(error => {
+                    console.log("Autoplay deactivated");
+                });
+                
+                lightbox.classList.add('active');
+                lenis.stop();
+            }
+        }
+
+        function closeLightbox(event, forceClose = false) {
+            if (forceClose || event.target === lightbox) {
+                lightbox.classList.remove('active');
+                lenis.start();
+                
+                setTimeout(() => {
+                    lbVid.pause();
+                    lbVid.src = "";
+                    lbImg.src = "";
+                }, 400);
+            }
+        }
+    </script>
+</body>
+</html>
